@@ -3,10 +3,18 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+if (connectionString != null && connectionString.StartsWith("postgresql://") || 
+    connectionString != null && connectionString.StartsWith("postgres://"))
+{
+    var uri = new Uri(connectionString);
+    var userInfo = uri.UserInfo.Split(':');
+    connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]};SSL Mode=Require;Trust Server Certificate=true";
+}
+
 builder.Services.AddOpenApi();
-builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(
-    builder.Configuration.GetConnectionString("DefaultConnection")
-));
+builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
 
 builder.Services.AddCors(options =>
 {
